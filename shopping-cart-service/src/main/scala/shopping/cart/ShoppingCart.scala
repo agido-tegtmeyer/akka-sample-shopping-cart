@@ -172,6 +172,9 @@ object ShoppingCart {
     ClusterSharding(system).init(Entity(EntityKey)(behaviorFactory))
   }
   
+  
+
+  
   def apply(cartId: String, projectionTag: String): Behavior[Command] = {
     EventSourcedBehavior
       .withEnforcedReplies[Command, Event, State](

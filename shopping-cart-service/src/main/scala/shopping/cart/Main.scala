@@ -40,8 +40,6 @@ object Main {
 
     ShoppingCart.init(system)
 
-    DavidBehavior.init(system)
-
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
 
     val grpcInterface =
