@@ -20,17 +20,24 @@ service ShoppingCartService {
   rpc GetCart (GetCartRequest) returns (Cart) {}
 
 
+    rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
 
-  rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
 
+    rpc CalculateDavidRequest(DavidRequest) returns (DavidResponse) {}
 }
 
-
+message DavidRequest {
+    int32 seconds = 1;
+    int32 factor = 2;
+}
 message Sha256Request {
     string message = 1;
     int32 iterations = 2;
 }
 
+message DavidResponse {
+    bool hatgeklappt = 1;
+}
 message Sha256Response {
     string hash = 1;
 }
