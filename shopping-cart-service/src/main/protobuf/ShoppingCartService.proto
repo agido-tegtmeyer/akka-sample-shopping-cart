@@ -19,8 +19,17 @@ service ShoppingCartService {
 
     rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
 
-
     rpc CalculateDavidRequest(DavidRequest) returns (DavidResponse) {}
+
+    rpc StreamedRequests(StreamedRequest) returns (stream StreamedResponse) {}
+}
+
+message StreamedRequest {
+    int32 number = 1;
+}
+
+message StreamedResponse {
+    string response = 1;
 }
 
 message DavidRequest {

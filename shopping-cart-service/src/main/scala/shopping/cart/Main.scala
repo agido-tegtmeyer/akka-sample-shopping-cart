@@ -7,7 +7,6 @@ import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
 import scala.util.control.NonFatal
 
-import akka.actor.CoordinatedShutdown
 import shopping.cart.repository.ItemPopularityRepositoryImpl
 import shopping.cart.repository.ScalikeJdbcSetup
 
@@ -41,6 +40,7 @@ object Main {
     ShoppingCart.init(system)
 
     DavidBehavior.init(system)
+    StreamBehavior.init(system)
 
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
 

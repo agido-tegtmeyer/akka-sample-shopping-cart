@@ -12,7 +12,6 @@ object DavidBehavior {
     EntityTypeKey[DavidCommand]("DavidBehavior")
 
 
-
   /**
    * This interface defines all the commands (messages) that the ShoppingCart actor supports.
    */
@@ -24,7 +23,6 @@ object DavidBehavior {
    * Summary of the shopping cart state, used in reply messages.
    */
   final case class Response(answer: String) extends CborSerializable
-
 
   def init(system: ActorSystem[_]): Unit = {
     val behaviorFactory: EntityContext[DavidCommand] => Behavior[DavidCommand] = {

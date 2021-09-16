@@ -1,5 +1,8 @@
 package shopping.cart
 
+import akka.NotUsed
+
+import akka.actor.{ActorRef => TActorRef}
 import java.util.concurrent.TimeoutException
 import scala.concurrent.{ExecutionContext, Future}
 import akka.actor.typed.{ActorSystem, DispatcherSelector}
@@ -11,9 +14,10 @@ import org.slf4j.LoggerFactory
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 import akka.actor.typed.ActorRef
 import akka.pattern.StatusReply
-import shopping.cart.proto.{DavidRequest, DavidResponse}
-
-
+import akka.stream.OverflowStrategy
+import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
+import shopping.cart.StreamBehavior.Compute
+import shopping.cart.proto.{DavidRequest, DavidResponse, StreamedRequest, StreamedResponse}
 
 
 class ShoppingCartServiceImpl(
@@ -23,6 +27,8 @@ class ShoppingCartServiceImpl(
 
   
   import system.executionContext
+
+  implicit val materializer = system
 
   private val logger = LoggerFactory.getLogger(getClass)
 
@@ -75,6 +81,7 @@ class ShoppingCartServiceImpl(
     convertError(response)
   }
 
+
   
   override def checkout(in: proto.CheckoutRequest): Future[proto.Cart] = {
     logger.info("checkout {}", in.cartId)
@@ -120,7 +127,6 @@ class ShoppingCartServiceImpl(
     }
   }
 
-  
   override def getItemPopularity(in: proto.GetItemPopularityRequest)
       : Future[proto.GetItemPopularityResponse] = {
     Future { 
@@ -133,6 +139,28 @@ class ShoppingCartServiceImpl(
       case None =>
         proto.GetItemPopularityResponse(in.itemId, 0L)
     }
+  }
+
+  override def streamedRequests(in: StreamedRequest): Source[StreamedResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[StreamedResponse]("StreamedRequests")
+
+    (0 to in.number) foreach { i =>
+      val entityRef = sharding.entityRefFor(StreamBehavior.EntityKey, i.toString)
+      entityRef ! Compute(i, a)
+    }
+
+    b
+  }
+
+
+  private def initializeActorSource[T](requestDescription: String): (TActorRef, Source[T, NotUsed]) = {
+    val source: Source[T, TActorRef] = Source.actorRef[T](
+      completionMatcher = PartialFunction.empty,
+      failureMatcher = PartialFunction.empty,
+      bufferSize = 10000,
+      overflowStrategy = OverflowStrategy.fail
+    )
+    source.toMat(BroadcastHub.sink[T])(Keep.both).run()
   }
 }
 
