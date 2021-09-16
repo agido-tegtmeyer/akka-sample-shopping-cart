@@ -11,21 +11,26 @@ package shoppingcart;
 
 service ShoppingCartService {
 
-
     rpc AddItem (AddItemRequest) returns (Cart) {}
     rpc UpdateItem (UpdateItemRequest) returns (Cart) {}
     
     rpc Checkout (CheckoutRequest) returns (Cart) {}
     rpc GetCart (GetCartRequest) returns (Cart) {}
-    
 
-    
     rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
-    
+
+
+    rpc CalculateDavidRequest(DavidRequest) returns (DavidResponse) {}
 }
 
+message DavidRequest {
+    int32 seconds = 1;
+    int32 factor = 2;
+}
 
-
+message DavidResponse {
+    bool hatgeklappt = 1;
+}
 
 message AddItemRequest {
     string cartId = 1;

@@ -1,18 +1,17 @@
 package shopping.cart
 
 import java.util.concurrent.TimeoutException
-import scala.concurrent.{ ExecutionContext, Future }
-import akka.actor.typed.{ ActorSystem, DispatcherSelector }
+import scala.concurrent.{ExecutionContext, Future}
+import akka.actor.typed.{ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
-
-
+import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 import akka.actor.typed.ActorRef
 import akka.pattern.StatusReply
+import shopping.cart.proto.{DavidRequest, DavidResponse}
 
 
 
@@ -66,6 +65,16 @@ class ShoppingCartServiceImpl(
     convertError(response)
   }
 
+  override def calculateDavidRequest(in: DavidRequest): Future[DavidResponse] = {
+    logger.info(s"calculateDavidRequest $in")
+    val entityRef = sharding.entityRefFor(DavidBehavior.EntityKey, in.seconds.toString)
+    val reply: Future[DavidBehavior.Response] = entityRef.ask(DavidBehavior.Compute(_))
+
+    val response = reply.map((asdf: DavidBehavior.Response) => DavidResponse(true))
+
+    convertError(response)
+  }
+
   
   override def checkout(in: proto.CheckoutRequest): Future[proto.Cart] = {
     logger.info("checkout {}", in.cartId)
@@ -89,9 +98,7 @@ class ShoppingCartServiceImpl(
       }
     convertError(response)
   }
-  
 
-  
   private def toProtoCart(cart: ShoppingCart.Summary): proto.Cart = {
     proto.Cart(
       cart.items.iterator.map { case (itemId, quantity) =>
@@ -99,7 +106,6 @@ class ShoppingCartServiceImpl(
       }.toSeq,
       cart.checkedOut)
   }
-  
 
   private def convertError[T](response: Future[T]): Future[T] = {
     response.recoverWith {
