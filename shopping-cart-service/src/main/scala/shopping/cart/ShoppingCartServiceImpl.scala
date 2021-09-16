@@ -1,28 +1,26 @@
 package shopping.cart
 
-import java.util.concurrent.TimeoutException
-import scala.concurrent.{ ExecutionContext, Future }
-import akka.actor.typed.{ ActorSystem, DispatcherSelector }
+import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
+import akka.pattern.StatusReply
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.repository.{ ItemPopularityRepository, ScalikeJdbcSession }
+import shopping.cart.proto.Sha256Response
+import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
-
-import akka.actor.typed.ActorRef
-import akka.pattern.StatusReply
-
-
+import java.util.concurrent.TimeoutException
+import scala.annotation.tailrec
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class ShoppingCartServiceImpl(
-    system: ActorSystem[_],
-    itemPopularityRepository: ItemPopularityRepository) 
-    extends proto.ShoppingCartService {
+                               system: ActorSystem[_],
+                               itemPopularityRepository: ItemPopularityRepository)
+  extends proto.ShoppingCartService {
 
-  
+
   import system.executionContext
 
   private val logger = LoggerFactory.getLogger(getClass)
@@ -33,14 +31,31 @@ class ShoppingCartServiceImpl(
 
   private val sharding = ClusterSharding(system)
 
-  
+
   private val blockingJdbcExecutor: ExecutionContext =
     system.dispatchers.lookup(
       DispatcherSelector
         .fromConfig("akka.projection.jdbc.blocking-jdbc-dispatcher")
-    ) 
+    )
 
-  
+  def sha256Hash(text: String): String = String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
+
+  @tailrec
+  private def times(iterations: Int, string: String): String = {
+    iterations match {
+      case x if x > 0 =>
+        times(x - 1, sha256Hash(string))
+      case _ => string
+    }
+  }
+
+  override def sha256(in: shopping.cart.proto.Sha256Request):
+  scala.concurrent.Future[shopping.cart.proto.Sha256Response] = {
+    val message = in.message
+    val iterations = in.iterations
+    Future.successful(Sha256Response(times(iterations, message)))
+  }
+
   override def addItem(in: proto.AddItemRequest): Future[proto.Cart] = {
     logger.info("addItem {} to cart {}", in.itemId, in.cartId)
     val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
@@ -66,7 +81,7 @@ class ShoppingCartServiceImpl(
     convertError(response)
   }
 
-  
+
   override def checkout(in: proto.CheckoutRequest): Future[proto.Cart] = {
     logger.info("checkout {}", in.cartId)
     val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
@@ -89,9 +104,8 @@ class ShoppingCartServiceImpl(
       }
     convertError(response)
   }
-  
 
-  
+
   private def toProtoCart(cart: ShoppingCart.Summary): proto.Cart = {
     proto.Cart(
       cart.items.iterator.map { case (itemId, quantity) =>
@@ -99,7 +113,7 @@ class ShoppingCartServiceImpl(
       }.toSeq,
       cart.checkedOut)
   }
-  
+
 
   private def convertError[T](response: Future[T]): Future[T] = {
     response.recoverWith {
@@ -114,10 +128,10 @@ class ShoppingCartServiceImpl(
     }
   }
 
-  
+
   override def getItemPopularity(in: proto.GetItemPopularityRequest)
-      : Future[proto.GetItemPopularityResponse] = {
-    Future { 
+  : Future[proto.GetItemPopularityResponse] = {
+    Future {
       ScalikeJdbcSession.withSession { session =>
         itemPopularityRepository.getItem(session, in.itemId)
       }
