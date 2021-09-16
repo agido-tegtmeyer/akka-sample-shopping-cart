@@ -7,7 +7,7 @@ import akka.pattern.StatusReply
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.proto.{CalculateFactorialRequest, DavidRequest, DavidResponse, FactorialResponse}
+import shopping.cart.proto.{CalculateFactorialRequest, DavidRequest, DavidResponse, FactorialResponse, Sha256Response}
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
 import java.util.concurrent.TimeoutException
@@ -114,7 +114,7 @@ class ShoppingCartServiceImpl(
       }
     convertError(response)
   }
-  
+
 
   private def toProtoCart(cart: ShoppingCart.Summary): proto.Cart = {
     proto.Cart(
@@ -123,7 +123,7 @@ class ShoppingCartServiceImpl(
       }.toSeq,
       cart.checkedOut)
   }
-  
+
 
   private def convertError[T](response: Future[T]): Future[T] = {
     response.recoverWith {
