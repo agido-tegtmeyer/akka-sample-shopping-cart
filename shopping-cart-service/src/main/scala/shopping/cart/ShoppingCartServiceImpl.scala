@@ -1,31 +1,23 @@
 package shopping.cart
 
 import akka.NotUsed
-
-import akka.actor.{ActorRef => TActorRef}
-import java.util.concurrent.TimeoutException
-import scala.concurrent.{ExecutionContext, Future}
-import akka.actor.typed.{ActorSystem, DispatcherSelector}
 import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
+import akka.actor.{ActorRef => TActorRef}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
 import akka.pattern.StatusReply
+import akka.stream.OverflowStrategy
+import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.proto.{CalculateFactorialRequest, DavidRequest, DavidResponse, FactorialResponse, Sha256Response}
+import shopping.cart.StreamBehavior.Compute
+import shopping.cart.proto._
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
-import akka.actor.typed.ActorRef
-import akka.pattern.StatusReply
-import akka.stream.OverflowStrategy
-import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
-import shopping.cart.StreamBehavior.Compute
-import shopping.cart.proto.{DavidRequest, DavidResponse, StreamedRequest, StreamedResponse}
-
 
 class ShoppingCartServiceImpl(
                                system: ActorSystem[_],
@@ -104,7 +96,6 @@ class ShoppingCartServiceImpl(
 
     convertError(response)
   }
-
 
 
   override def checkout(in: proto.CheckoutRequest): Future[proto.Cart] = {
@@ -200,6 +191,24 @@ class ShoppingCartServiceImpl(
       case 0 => 1
       case n => n * factorial(n - 1)
     }
+
+  override def getFibonacci(in: CalculateFibonacciRequest): Future[CalculateFibonacciResponse] = {
+    logger.info("getFibonacci {}", in.number)
+    val start = System.currentTimeMillis()
+    val fibonacci = calculateFibonacci(in.number)
+
+    val duration = System.currentTimeMillis() - start
+    logger.info("result: {} calculated in {}ms", fibonacci, duration)
+    val response = Future.successful(CalculateFibonacciResponse(duration, fibonacci.toString))
+    convertError(response)
+  }
+
+  private def calculateFibonacci(n: Int): Long = {
+    n match {
+      case 1 | 2 => 1
+      case _ => calculateFibonacci(n - 1) + calculateFibonacci(n - 2)
+    }
+  }
 
 }
 
