@@ -1,27 +1,25 @@
 package shopping.cart
 
-import java.util.concurrent.TimeoutException
-import scala.concurrent.{ExecutionContext, Future}
-import akka.actor.typed.{ActorSystem, DispatcherSelector}
+import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
+import akka.pattern.StatusReply
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
+import shopping.cart.proto.{CalculateFactorialRequest, DavidRequest, DavidResponse, FactorialResponse}
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
-import akka.actor.typed.ActorRef
-import akka.pattern.StatusReply
-import shopping.cart.proto.{DavidRequest, DavidResponse}
 
-
+import java.util.concurrent.TimeoutException
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class ShoppingCartServiceImpl(
-    system: ActorSystem[_],
-    itemPopularityRepository: ItemPopularityRepository) 
-    extends proto.ShoppingCartService {
+                               system: ActorSystem[_],
+                               itemPopularityRepository: ItemPopularityRepository)
+  extends proto.ShoppingCartService {
 
-  
+
   import system.executionContext
 
   private val logger = LoggerFactory.getLogger(getClass)
@@ -32,14 +30,14 @@ class ShoppingCartServiceImpl(
 
   private val sharding = ClusterSharding(system)
 
-  
+
   private val blockingJdbcExecutor: ExecutionContext =
     system.dispatchers.lookup(
       DispatcherSelector
         .fromConfig("akka.projection.jdbc.blocking-jdbc-dispatcher")
-    ) 
+    )
 
-  
+
   override def addItem(in: proto.AddItemRequest): Future[proto.Cart] = {
     logger.info("addItem {} to cart {}", in.itemId, in.cartId)
     val entityRef = sharding.entityRefFor(ShoppingCart.EntityKey, in.cartId)
@@ -120,10 +118,10 @@ class ShoppingCartServiceImpl(
     }
   }
 
-  
+
   override def getItemPopularity(in: proto.GetItemPopularityRequest)
-      : Future[proto.GetItemPopularityResponse] = {
-    Future { 
+  : Future[proto.GetItemPopularityResponse] = {
+    Future {
       ScalikeJdbcSession.withSession { session =>
         itemPopularityRepository.getItem(session, in.itemId)
       }
@@ -134,5 +132,18 @@ class ShoppingCartServiceImpl(
         proto.GetItemPopularityResponse(in.itemId, 0L)
     }
   }
+
+  override def calculateFactorial(in: CalculateFactorialRequest): Future[FactorialResponse] = {
+    val factorialSeed = in.number
+    val factorialResult = factorial(factorialSeed)
+    convertError(Future.successful(FactorialResponse(factorialResult)))
+  }
+
+  private def factorial(seed: Long): Long =
+    seed match {
+      case 0 => 1
+      case n => n * factorial(n - 1)
+    }
+
 }
 
