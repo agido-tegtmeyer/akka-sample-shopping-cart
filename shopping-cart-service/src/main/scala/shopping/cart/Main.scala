@@ -41,13 +41,6 @@ object Main {
     ShoppingCart.init(system)
 
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
-    ItemPopularityProjection.init(system, itemPopularityRepository)
-
-    PublishEventsProjection.init(system)
-
-    
-    SendOrderProjection.init(system, orderService) 
-    
 
     val grpcInterface =
       system.settings.config.getString("shopping-cart-service.grpc.interface")
