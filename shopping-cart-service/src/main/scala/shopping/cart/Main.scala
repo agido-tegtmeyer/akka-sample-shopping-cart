@@ -5,13 +5,13 @@ import akka.actor.typed.ActorSystem
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
-import scala.util.control.NonFatal
 
+import scala.util.control.NonFatal
 import shopping.cart.repository.ItemPopularityRepositoryImpl
 import shopping.cart.repository.ScalikeJdbcSetup
-
-import shopping.order.proto.{ ShoppingOrderService, ShoppingOrderServiceClient }
+import shopping.order.proto.{ShoppingOrderService, ShoppingOrderServiceClient}
 import akka.grpc.GrpcClientSettings
+import shopping.cart.behaviors.{ShoppingCart, SimpleResponder, StreamBehavior}
 
 object Main {
 
@@ -39,7 +39,7 @@ object Main {
 
     ShoppingCart.init(system)
 
-    DavidBehavior.init(system)
+    SimpleResponder.init(system)
     StreamBehavior.init(system)
 
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
@@ -54,8 +54,7 @@ object Main {
     
   }
 
-  protected def orderServiceClient( 
-      system: ActorSystem[_]): ShoppingOrderService = {
+  protected def orderServiceClient(system: ActorSystem[_]): ShoppingOrderService = {
     val orderServiceClientSettings =
       GrpcClientSettings
         .connectToServiceAt(

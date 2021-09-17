@@ -24,9 +24,9 @@ service ShoppingCartService {
 
   rpc GetFibonacci(CalculateFibonacciRequest) returns (CalculateFibonacciResponse) {}
 
-    rpc CalculateDavidRequest(DavidRequest) returns (DavidResponse) {}
+  rpc SingleRequest(SimpleRequest) returns (SimpleResponse) {}
 
-    rpc StreamedRequests(StreamedRequest) returns (stream StreamedResponse) {}
+  rpc StreamedRequests(StreamedRequest) returns (stream StreamedResponse) {}
 }
 
 message StreamedRequest {
@@ -37,18 +37,19 @@ message StreamedResponse {
     string response = 1;
 }
 
-message DavidRequest {
-  int32 seconds = 1;
-  int32 factor = 2;
+message SimpleRequest {
+  string name = 1;
 }
+
+message SimpleResponse {
+  string resposne = 1;
+}
+
 message Sha256Request {
   string message = 1;
   int32 iterations = 2;
 }
 
-message DavidResponse {
-  bool hatgeklappt = 1;
-}
 message Sha256Response {
   string hash = 1;
 }
