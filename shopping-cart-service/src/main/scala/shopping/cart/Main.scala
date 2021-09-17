@@ -40,6 +40,7 @@ object Main {
 
     SimpleResponder.init(system)
     StreamBehavior.init(system)
+    PowerBehavior.init(system)
     FactorialBehavior.init(system)
     FibonacciBehavior.init(system)
 

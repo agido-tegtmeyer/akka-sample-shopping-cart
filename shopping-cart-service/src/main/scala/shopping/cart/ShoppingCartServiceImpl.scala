@@ -1,17 +1,13 @@
 package shopping.cart
 
 import akka.NotUsed
-import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.actor.{ActorRef => TActorRef}
+import akka.actor.typed.{ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
-import akka.pattern.StatusReply
-import akka.stream.OverflowStrategy
-import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
 import shopping.cart.behaviors.StreamBehavior.{Compute, Response}
 import shopping.cart.behaviors.{FactorialBehavior, FibonacciBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 import shopping.cart.proto._
@@ -20,6 +16,12 @@ import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
+import akka.actor.typed.ActorRef
+import akka.pattern.StatusReply
+import akka.stream.OverflowStrategy
+import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
+import shopping.cart.PowerBehavior.ComputePower
+import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
 
 class ShoppingCartServiceImpl(system: ActorSystem[_],
                               itemPopularityRepository: ItemPopularityRepository)
@@ -203,6 +205,17 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
       case None =>
         proto.GetItemPopularityResponse(in.itemId, 0L)
     }
+  }
+
+  override def calculatePowerRequest(in: proto.PowerRequest): Source[proto.PowerResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[PowerBehavior.Response]("PowerRequests")
+
+    (0 to in.exponent.toInt) foreach { exponent =>
+      val entityRef = sharding.entityRefFor(PowerBehavior.EntityKey, exponent.toString)
+      entityRef ! ComputePower(in.x, exponent, a)
+    }
+
+    b.map(answer => PowerResponse(answer.x, answer.exponent, answer.result))
   }
 }
 
