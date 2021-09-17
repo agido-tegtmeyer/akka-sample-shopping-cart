@@ -100,7 +100,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
       entityRef ! ComputeFactorial(i, a)
     }
 
-    b.map(x => FactorialResponse(x.factorial))
+    b.map(x => FactorialResponse(x.seed, x.factorial))
   }
 
   override def getFibonacci(in: CalculateFibonacciRequest): Source[CalculateFibonacciResponse, NotUsed] = {

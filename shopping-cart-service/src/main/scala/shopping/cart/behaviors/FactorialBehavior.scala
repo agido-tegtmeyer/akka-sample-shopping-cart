@@ -19,7 +19,7 @@ object FactorialBehavior {
 
   case class ComputeFactorial(number: Int, replyTo: TActorRef) extends FactorialCommand
 
-  final case class Response(factorial: Long) extends CborSerializable
+  final case class Response(seed: Long, factorial: Long) extends CborSerializable
 
   def init(system: ActorSystem[_]): Unit = {
     val behaviorFactory: EntityContext[FactorialCommand] => Behavior[FactorialCommand] = {
@@ -36,7 +36,7 @@ object FactorialBehavior {
 
         val factorialResult: Long = factorial(number)
         logger.info(s"Factorial for: $number is: $factorialResult")
-        replyTo ! Response(factorialResult)
+        replyTo ! Response(number, factorialResult)
 
         Behaviors.same
     }
