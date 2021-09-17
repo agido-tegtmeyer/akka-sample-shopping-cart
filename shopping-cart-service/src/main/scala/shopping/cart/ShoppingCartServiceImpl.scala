@@ -116,7 +116,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
       entityRef ! FibonacciBehavior.Compute(i, a)
     }
 
-    b.map(x => CalculateFibonacciResponse(x.duration, x.number, x.result))
+    b.map(x => CalculateFibonacciResponse(x.duration, x.number, x.result, x.address))
   }
 
   override def singleRequest(in: SimpleRequest): Future[SimpleResponse] = {
