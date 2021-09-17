@@ -11,7 +11,7 @@ import shopping.cart.repository.ItemPopularityRepositoryImpl
 import shopping.cart.repository.ScalikeJdbcSetup
 import shopping.order.proto.{ShoppingOrderService, ShoppingOrderServiceClient}
 import akka.grpc.GrpcClientSettings
-import shopping.cart.behaviors.{ShoppingCart, SimpleResponder, StreamBehavior}
+import shopping.cart.behaviors.{FactorialBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 
 object Main {
 
@@ -41,6 +41,7 @@ object Main {
 
     SimpleResponder.init(system)
     StreamBehavior.init(system)
+    FactorialBehavior.init(system)
 
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
 
