@@ -22,7 +22,7 @@ object DemoApp extends App {
     val cluster = Cluster(context.system)
     context.log.info("Started [" + context.system + "], cluster.selfAddress = " + cluster.selfMember.address + ")")
 
-    Http().newServerAt("0.0.0.0", 8080).bind(complete("Hello world - Return of the Greeting"))
+    Http().newServerAt("0.0.0.0", 8080).bind(complete(s"Hello world - Return of the Greeting ${cluster.selfMember.address}"))
 
     // Create an actor that handles cluster domain events
     val listener = context.spawn(Behaviors.receive[ClusterEvent.MemberEvent]((ctx, event) => {
