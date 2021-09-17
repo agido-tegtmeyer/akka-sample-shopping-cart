@@ -45,9 +45,9 @@ object FibonacciBehavior {
 
   private def calculateFibonacci(n: Int): Long = {
     n match {
+      case 0 => 0
       case 1 | 2 => 1
       case _ => calculateFibonacci(n - 1) + calculateFibonacci(n - 2)
     }
   }
-
 }

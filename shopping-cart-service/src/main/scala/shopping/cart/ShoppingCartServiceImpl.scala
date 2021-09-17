@@ -106,7 +106,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
   override def getFibonacci(in: CalculateFibonacciRequest): Source[CalculateFibonacciResponse, NotUsed] = {
     val (a: TActorRef, b) = initializeActorSource[FibonacciBehavior.Response]("GetFibonacci")
 
-    (1 to in.number) foreach { i =>
+    (0 to in.number) foreach { i =>
       val entityRef = sharding.entityRefFor(FibonacciBehavior.EntityKey, i.toString)
       entityRef ! FibonacciBehavior.Compute(i, a)
     }
