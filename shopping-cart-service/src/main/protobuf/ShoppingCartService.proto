@@ -18,7 +18,7 @@ service ShoppingCartService {
   rpc GetCart (GetCartRequest) returns (Cart) {}
 
 
-  rpc CalculateFactorial (CalculateFactorialRequest) returns (FactorialResponse) {}
+  rpc FactorialRequests (FactorialRequest) returns (stream FactorialResponse) {}
 
   rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
 
@@ -71,8 +71,8 @@ message AddItemRequest {
 
 
 
-message CalculateFactorialRequest {
-  int64 number = 1;
+message FactorialRequest {
+  int32 number = 1;
 }
 
 message UpdateItemRequest {

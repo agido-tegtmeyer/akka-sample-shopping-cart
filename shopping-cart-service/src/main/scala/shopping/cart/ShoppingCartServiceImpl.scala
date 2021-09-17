@@ -12,7 +12,8 @@ import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 import shopping.cart.behaviors.StreamBehavior.Compute
-import shopping.cart.behaviors.{ShoppingCart, SimpleResponder, StreamBehavior}
+import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
+import shopping.cart.behaviors.{FactorialBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 import shopping.cart.proto._
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
@@ -56,7 +57,6 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
   }
 
 
-
   private def convertError[T](response: Future[T]): Future[T] = {
     response.recoverWith {
       case _: TimeoutException =>
@@ -92,17 +92,16 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
     source.toMat(BroadcastHub.sink[T])(Keep.both).run()
   }
 
-  override def calculateFactorial(in: CalculateFactorialRequest): Future[FactorialResponse] = {
-    val factorialSeed = in.number
-    val factorialResult = factorial(factorialSeed)
-    convertError(Future.successful(FactorialResponse(factorialResult)))
-  }
+  override def factorialRequests(in: FactorialRequest): Source[FactorialResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[FactorialResponse]("FactorialRequest")
 
-  private def factorial(seed: Long): Long =
-    seed match {
-      case 0 => 1
-      case n => n * factorial(n - 1)
+    (0 to in.number) foreach { i =>
+      val entityRef = sharding.entityRefFor(FactorialBehavior.EntityKey, i.toString)
+      entityRef ! ComputeFactorial(i, a)
     }
+
+    b
+  }
 
   override def getFibonacci(in: CalculateFibonacciRequest): Future[CalculateFibonacciResponse] = {
     logger.info("getFibonacci {}", in.number)
@@ -131,8 +130,6 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
 
     convertError(response)
   }
-
-
 
 
   // OLD STUFF
