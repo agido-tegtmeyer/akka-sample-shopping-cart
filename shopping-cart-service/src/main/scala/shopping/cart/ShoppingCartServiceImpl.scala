@@ -13,7 +13,7 @@ import io.grpc.Status
 import org.slf4j.LoggerFactory
 import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
 import shopping.cart.behaviors.StreamBehavior.{Compute, Response}
-import shopping.cart.behaviors.{FactorialBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
+import shopping.cart.behaviors.{FactorialBehavior, FibonacciBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 import shopping.cart.proto._
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
@@ -103,22 +103,15 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
     b.map(x => FactorialResponse(x.factorial))
   }
 
-  override def getFibonacci(in: CalculateFibonacciRequest): Future[CalculateFibonacciResponse] = {
-    logger.info("getFibonacci {}", in.number)
-    val start = System.currentTimeMillis()
-    val fibonacci = calculateFibonacci(in.number)
+  override def getFibonacci(in: CalculateFibonacciRequest): Source[CalculateFibonacciResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[FibonacciBehavior.Response]("GetFibonacci")
 
-    val duration = System.currentTimeMillis() - start
-    logger.info("result: {} calculated in {}ms", fibonacci, duration)
-    val response = Future.successful(CalculateFibonacciResponse(duration, fibonacci.toString))
-    convertError(response)
-  }
-
-  private def calculateFibonacci(n: Int): Long = {
-    n match {
-      case 1 | 2 => 1
-      case _ => calculateFibonacci(n - 1) + calculateFibonacci(n - 2)
+    (1 to in.number) foreach { i =>
+      val entityRef = sharding.entityRefFor(FibonacciBehavior.EntityKey, i.toString)
+      entityRef ! FibonacciBehavior.Compute(i, a)
     }
+
+    b.map(x => CalculateFibonacciResponse(x.duration, x.number, x.result))
   }
 
   override def singleRequest(in: SimpleRequest): Future[SimpleResponse] = {

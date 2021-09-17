@@ -1,17 +1,16 @@
 package shopping.cart
 
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.Behaviors
+import akka.grpc.GrpcClientSettings
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
+import shopping.cart.behaviors._
+import shopping.cart.repository.{ItemPopularityRepositoryImpl, ScalikeJdbcSetup}
+import shopping.order.proto.{ShoppingOrderService, ShoppingOrderServiceClient}
 
 import scala.util.control.NonFatal
-import shopping.cart.repository.ItemPopularityRepositoryImpl
-import shopping.cart.repository.ScalikeJdbcSetup
-import shopping.order.proto.{ShoppingOrderService, ShoppingOrderServiceClient}
-import akka.grpc.GrpcClientSettings
-import shopping.cart.behaviors.{FactorialBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 
 object Main {
 
@@ -42,6 +41,7 @@ object Main {
     SimpleResponder.init(system)
     StreamBehavior.init(system)
     FactorialBehavior.init(system)
+    FibonacciBehavior.init(system)
 
     val itemPopularityRepository = new ItemPopularityRepositoryImpl()
 

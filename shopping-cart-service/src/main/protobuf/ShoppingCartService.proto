@@ -22,7 +22,7 @@ service ShoppingCartService {
 
   rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
 
-  rpc GetFibonacci(CalculateFibonacciRequest) returns (CalculateFibonacciResponse) {}
+  rpc GetFibonacci(CalculateFibonacciRequest) returns (stream CalculateFibonacciResponse) {}
 
   rpc SingleRequest(SimpleRequest) returns (SimpleResponse) {}
 
@@ -60,7 +60,8 @@ message CalculateFibonacciRequest {
 
 message CalculateFibonacciResponse {
   uint64 duration = 1;
-  string result = 2;
+  int32 number = 2;
+  string result = 3;
 }
 
 message AddItemRequest {
