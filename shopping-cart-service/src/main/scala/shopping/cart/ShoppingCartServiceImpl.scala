@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
-import shopping.cart.behaviors.StreamBehavior.Compute
+import shopping.cart.behaviors.StreamBehavior.{Compute, Response}
 import shopping.cart.behaviors.{ShoppingCart, SimpleResponder, StreamBehavior}
 import shopping.cart.proto._
 import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
@@ -72,14 +72,14 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
 
 
   override def streamedRequests(in: StreamedRequest): Source[StreamedResponse, NotUsed] = {
-    val (a: TActorRef, b) = initializeActorSource[StreamedResponse]("StreamedRequests")
+    val (a: TActorRef, b) = initializeActorSource[Response]("StreamedRequests")
 
     (0 to in.number) foreach { i =>
       val entityRef = sharding.entityRefFor(StreamBehavior.EntityKey, i.toString)
       entityRef ! Compute(i, a)
     }
 
-    b
+    b.map(x => StreamedResponse(x.answer))
   }
 
   private def initializeActorSource[T](requestDescription: String): (TActorRef, Source[T, NotUsed]) = {
