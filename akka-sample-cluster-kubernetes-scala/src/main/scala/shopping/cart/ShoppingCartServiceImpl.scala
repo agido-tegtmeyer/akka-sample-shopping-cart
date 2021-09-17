@@ -1,26 +1,32 @@
 package shopping.cart
 
 import akka.NotUsed
-import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.actor.{ActorRef => TActorRef}
+import akka.actor.typed.{ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
-import akka.pattern.StatusReply
-import akka.stream.OverflowStrategy
-import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
 import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 import shopping.cart.behaviors.StreamBehavior.{Compute, Response}
-import shopping.cart.behaviors.{ShoppingCart, SimpleResponder, StreamBehavior}
+import shopping.cart.behaviors.{FactorialBehavior, FibonacciBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
 import shopping.cart.proto._
-import shopping.cart.repository.{ ScalikeJdbcSession}
+import shopping.cart.repository.{ItemPopularityRepository, ScalikeJdbcSession}
 
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
+import akka.actor.typed.ActorRef
+import akka.pattern.StatusReply
+import akka.stream.OverflowStrategy
+import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
+import shopping.cart.PowerBehavior.ComputePower
+import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
+import scala.math.BigDecimal.double2bigDecimal
 
-class ShoppingCartServiceImpl(system: ActorSystem[_])
+
+class ShoppingCartServiceImpl(system: ActorSystem[_],
+                              itemPopularityRepository: ItemPopularityRepository)
   extends proto.ShoppingCartService {
 
 
@@ -55,7 +61,6 @@ class ShoppingCartServiceImpl(system: ActorSystem[_])
   }
 
 
-
   private def convertError[T](response: Future[T]): Future[T] = {
     response.recoverWith {
       case _: TimeoutException =>
@@ -75,7 +80,7 @@ class ShoppingCartServiceImpl(system: ActorSystem[_])
 
     (0 to in.number) foreach { i =>
       val entityRef = sharding.entityRefFor(StreamBehavior.EntityKey, i.toString)
-      entityRef tell Compute(i, a)
+      entityRef ! Compute(i, a)
     }
 
     b.map(x => StreamedResponse(x.answer))
@@ -91,34 +96,26 @@ class ShoppingCartServiceImpl(system: ActorSystem[_])
     source.toMat(BroadcastHub.sink[T])(Keep.both).run()
   }
 
-  override def calculateFactorial(in: CalculateFactorialRequest): Future[FactorialResponse] = {
-    val factorialSeed = in.number
-    val factorialResult = factorial(factorialSeed)
-    convertError(Future.successful(FactorialResponse(factorialResult)))
-  }
+  override def factorialRequests(in: FactorialRequest): Source[FactorialResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[FactorialBehavior.Response]("FactorialRequest")
 
-  private def factorial(seed: Long): Long =
-    seed match {
-      case 0 => 1
-      case n => n * factorial(n - 1)
+    (0 to in.number) foreach { i =>
+      val entityRef = sharding.entityRefFor(FactorialBehavior.EntityKey, i.toString)
+      entityRef ! ComputeFactorial(i, a)
     }
 
-  override def getFibonacci(in: CalculateFibonacciRequest): Future[CalculateFibonacciResponse] = {
-    logger.info("getFibonacci {}", in.number)
-    val start = System.currentTimeMillis()
-    val fibonacci = calculateFibonacci(in.number)
-
-    val duration = System.currentTimeMillis() - start
-    logger.info("result: {} calculated in {}ms", fibonacci, duration)
-    val response = Future.successful(CalculateFibonacciResponse(duration, fibonacci.toString))
-    convertError(response)
+    b.map(x => FactorialResponse(x.seed, x.factorial))
   }
 
-  private def calculateFibonacci(n: Int): Long = {
-    n match {
-      case 1 | 2 => 1
-      case _ => calculateFibonacci(n - 1) + calculateFibonacci(n - 2)
+  override def getFibonacci(in: CalculateFibonacciRequest): Source[CalculateFibonacciResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[FibonacciBehavior.Response]("GetFibonacci")
+
+    (0 to in.number) foreach { i =>
+      val entityRef = sharding.entityRefFor(FibonacciBehavior.EntityKey, i.toString)
+      entityRef ! FibonacciBehavior.Compute(i, a)
     }
+
+    b.map(x => CalculateFibonacciResponse(x.duration, x.number, x.result, x.address))
   }
 
   override def singleRequest(in: SimpleRequest): Future[SimpleResponse] = {
@@ -130,8 +127,6 @@ class ShoppingCartServiceImpl(system: ActorSystem[_])
 
     convertError(response)
   }
-
-
 
 
   // OLD STUFF
@@ -200,5 +195,29 @@ class ShoppingCartServiceImpl(system: ActorSystem[_])
       cart.checkedOut)
   }
 
+
+  override def getItemPopularity(in: proto.GetItemPopularityRequest): Future[proto.GetItemPopularityResponse] = {
+    Future {
+      ScalikeJdbcSession.withSession { session =>
+        itemPopularityRepository.getItem(session, in.itemId)
+      }
+    }(blockingJdbcExecutor).map {
+      case Some(count) =>
+        proto.GetItemPopularityResponse(in.itemId, count)
+      case None =>
+        proto.GetItemPopularityResponse(in.itemId, 0L)
+    }
+  }
+
+  override def calculatePowerRequest(in: proto.PowerRequest): Source[proto.PowerResponse, NotUsed] = {
+    val (a: TActorRef, b) = initializeActorSource[PowerBehavior.Response]("PowerRequests")
+
+    (0.0 to in.exponent by 0.01) foreach { id =>
+      val entityRef = sharding.entityRefFor(PowerBehavior.EntityKey, id.toString)
+      entityRef ! ComputePower(in.x, in.exponent, a)
+    }
+
+    b.map(answer => PowerResponse(answer.x, answer.exponent, answer.result))
+  }
 }
 

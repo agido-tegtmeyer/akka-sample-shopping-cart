@@ -17,21 +17,39 @@ service ShoppingCartService {
   rpc Checkout (CheckoutRequest) returns (Cart) {}
   rpc GetCart (GetCartRequest) returns (Cart) {}
 
-  rpc CalculateFactorial (CalculateFactorialRequest) returns (FactorialResponse) {}
 
-  rpc GetFibonacci(CalculateFibonacciRequest) returns (CalculateFibonacciResponse) {}
+  rpc FactorialRequests (FactorialRequest) returns (stream FactorialResponse) {}
+
+  rpc GetItemPopularity(GetItemPopularityRequest) returns (GetItemPopularityResponse) {}
+
+  rpc GetFibonacci(CalculateFibonacciRequest) returns (stream CalculateFibonacciResponse) {}
 
   rpc SingleRequest(SimpleRequest) returns (SimpleResponse) {}
 
   rpc StreamedRequests(StreamedRequest) returns (stream StreamedResponse) {}
+
+  rpc CalculatePowerRequest(PowerRequest) returns (stream PowerResponse) {}
 }
 
+
+message PowerRequest {
+  double x = 1;
+  double exponent = 2;
+}
+
+message PowerResponse {
+  double x = 1;
+  double exponent = 2;
+  double result = 3;
+}
+
+
 message StreamedRequest {
-    int32 number = 1;
+  int32 number = 1;
 }
 
 message StreamedResponse {
-    string response = 1;
+  string response = 1;
 }
 
 message SimpleRequest {
@@ -57,7 +75,9 @@ message CalculateFibonacciRequest {
 
 message CalculateFibonacciResponse {
   uint64 duration = 1;
-  string result = 2;
+  int32 number = 2;
+  string result = 3;
+  string node = 4;
 }
 
 message AddItemRequest {
@@ -68,8 +88,8 @@ message AddItemRequest {
 
 
 
-message CalculateFactorialRequest {
-  int64 number = 1;
+message FactorialRequest {
+  int32 number = 1;
 }
 
 message UpdateItemRequest {
@@ -93,7 +113,8 @@ message Cart {
 }
 
 message FactorialResponse {
-  int64 factorial = 1;
+  int64 seed = 1;
+  uint64 factorial = 2;
 }
 
 

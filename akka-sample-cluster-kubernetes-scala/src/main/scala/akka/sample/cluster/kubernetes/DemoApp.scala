@@ -10,6 +10,7 @@ import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.javadsl.AkkaManagement
 import akka.{actor => classic}
 import shopping.cart.behaviors.{FactorialBehavior, FibonacciBehavior, ShoppingCart, SimpleResponder, StreamBehavior}
+import shopping.cart.repository.ItemPopularityRepositoryImpl
 import shopping.cart.{PowerBehavior, ShoppingCartServer, ShoppingCartServiceImpl}
 
 object DemoApp extends App {
@@ -47,7 +48,8 @@ object DemoApp extends App {
 
     val grpcInterface = "0.0.0.0"
     val grpcPort = 8081
-    val grpcService = new ShoppingCartServiceImpl(context.system)
+    val itemPopularityRepository = new ItemPopularityRepositoryImpl()
+    val grpcService = new ShoppingCartServiceImpl(context.system, itemPopularityRepository)
     ShoppingCartServer.start(grpcInterface, grpcPort, context.system, grpcService)
 
     Behaviors.empty

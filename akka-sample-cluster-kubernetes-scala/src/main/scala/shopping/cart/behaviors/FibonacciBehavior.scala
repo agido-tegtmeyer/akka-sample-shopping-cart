@@ -3,7 +3,6 @@ package shopping.cart.behaviors
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.{ActorRef => TActorRef}
-import akka.cluster.Cluster
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityContext, EntityTypeKey}
 import org.slf4j.LoggerFactory
 import shopping.cart.CborSerializable
