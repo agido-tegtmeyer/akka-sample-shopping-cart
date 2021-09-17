@@ -93,14 +93,14 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
   }
 
   override def factorialRequests(in: FactorialRequest): Source[FactorialResponse, NotUsed] = {
-    val (a: TActorRef, b) = initializeActorSource[FactorialResponse]("FactorialRequest")
+    val (a: TActorRef, b) = initializeActorSource[FactorialBehavior.Response]("FactorialRequest")
 
     (0 to in.number) foreach { i =>
       val entityRef = sharding.entityRefFor(FactorialBehavior.EntityKey, i.toString)
       entityRef ! ComputeFactorial(i, a)
     }
 
-    b
+    b.map(x => FactorialResponse(x.factorial))
   }
 
   override def getFibonacci(in: CalculateFibonacciRequest): Future[CalculateFibonacciResponse] = {

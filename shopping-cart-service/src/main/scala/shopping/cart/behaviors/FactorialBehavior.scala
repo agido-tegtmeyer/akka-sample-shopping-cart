@@ -1,14 +1,15 @@
 package shopping.cart.behaviors
 
-import akka.actor.{ActorRef => TActorRef}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.{ActorRef => TActorRef}
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityContext, EntityTypeKey}
+import org.slf4j.LoggerFactory
 import shopping.cart.CborSerializable
-import shopping.cart.proto.FactorialResponse
 
 object FactorialBehavior {
 
+  private val logger = LoggerFactory.getLogger(getClass)
 
   val EntityKey: EntityTypeKey[FactorialCommand] =
     EntityTypeKey[FactorialCommand]("FactorialBehavior")
@@ -18,7 +19,7 @@ object FactorialBehavior {
 
   case class ComputeFactorial(number: Int, replyTo: TActorRef) extends FactorialCommand
 
-  final case class Response(answer: String) extends CborSerializable
+  final case class Response(factorial: Long) extends CborSerializable
 
   def init(system: ActorSystem[_]): Unit = {
     val behaviorFactory: EntityContext[FactorialCommand] => Behavior[FactorialCommand] = {
@@ -31,10 +32,11 @@ object FactorialBehavior {
   def apply(workerId: String): Behavior[FactorialCommand] = {
     Behaviors.receiveMessagePartial {
       case ComputeFactorial(number, replyTo) =>
+        logger.info(s"Calculating factorial for: $number")
 
-        val result = factorial(number)
-
-        replyTo ! FactorialResponse(result)
+        val factorialResult: Long = factorial(number)
+        logger.info(s"Factorial for: $number is: $factorialResult")
+        replyTo ! Response(factorialResult)
 
         Behaviors.same
     }
