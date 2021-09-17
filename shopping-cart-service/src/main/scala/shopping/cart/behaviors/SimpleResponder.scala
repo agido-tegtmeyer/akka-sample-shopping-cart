@@ -7,21 +7,13 @@ import shopping.cart.CborSerializable
 
 object SimpleResponder {
 
-
   val EntityKey: EntityTypeKey[ResponderCommand] =
     EntityTypeKey[ResponderCommand]("Responder")
 
-
-  /**
-   * This interface defines all the commands (messages) that the ShoppingCart actor supports.
-   */
   sealed trait ResponderCommand extends CborSerializable
 
   case class Greet(replyTo: ActorRef[Response]) extends ResponderCommand
 
-  /**
-   * Summary of the shopping cart state, used in reply messages.
-   */
   final case class Response(answer: String) extends CborSerializable
 
   def init(system: ActorSystem[_]): Unit = {

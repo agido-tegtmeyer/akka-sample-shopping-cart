@@ -1,13 +1,15 @@
 package shopping.cart.behaviors
 
-import akka.actor.{ActorRef => TActorRef}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.{ActorRef => TActorRef}
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityContext, EntityTypeKey}
+import org.slf4j.LoggerFactory
 import shopping.cart.CborSerializable
-import shopping.cart.proto.StreamedResponse
 
 object StreamBehavior {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
 
   val EntityKey: EntityTypeKey[StreamCommand] =
@@ -31,10 +33,11 @@ object StreamBehavior {
   def apply(workerId: String): Behavior[StreamCommand] = {
     Behaviors.receiveMessagePartial {
       case Compute(number, replyTo) =>
+        logger.info(s"Hi there, I am working on number $number")
 
-        Thread.sleep(number)
+        Thread.sleep(number * 10)
 
-        replyTo ! StreamedResponse(s"Did some work for $number ms")
+        replyTo ! Response(s"Did some work for ${number * 10} ms")
 
         Behaviors.same
     }
