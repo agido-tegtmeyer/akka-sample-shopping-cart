@@ -22,6 +22,9 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{BroadcastHub, Keep, Source}
 import shopping.cart.PowerBehavior.ComputePower
 import shopping.cart.behaviors.FactorialBehavior.ComputeFactorial
+import scala.math.BigDecimal.double2bigDecimal
+
+
 
 class ShoppingCartServiceImpl(system: ActorSystem[_],
                               itemPopularityRepository: ItemPopularityRepository)
@@ -210,9 +213,9 @@ class ShoppingCartServiceImpl(system: ActorSystem[_],
   override def calculatePowerRequest(in: proto.PowerRequest): Source[proto.PowerResponse, NotUsed] = {
     val (a: TActorRef, b) = initializeActorSource[PowerBehavior.Response]("PowerRequests")
 
-    (0 to in.exponent.toInt) foreach { exponent =>
-      val entityRef = sharding.entityRefFor(PowerBehavior.EntityKey, exponent.toString)
-      entityRef ! ComputePower(in.x, exponent, a)
+    (0.0 to in.exponent by 0.01) foreach { id =>
+      val entityRef = sharding.entityRefFor(PowerBehavior.EntityKey, id.toString)
+      entityRef ! ComputePower(in.x, in.exponent, a)
     }
 
     b.map(answer => PowerResponse(answer.x, answer.exponent, answer.result))

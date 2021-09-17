@@ -14,9 +14,9 @@ object PowerBehavior {
 
   sealed trait PowerCommand extends CborSerializable
 
-  case class ComputePower(x: Double, exponent: Long, replyTo: TActorRef) extends PowerCommand
+  case class ComputePower(x: Double, exponent: Double, replyTo: TActorRef) extends PowerCommand
 
-  final case class Response(x: Double, exponent: Long, result: Double) extends CborSerializable
+  final case class Response(x: Double, exponent: Double, result: Double) extends CborSerializable
 
   def init(system: ActorSystem[_]): Unit = {
     val behaviorFactory: EntityContext[PowerCommand] => Behavior[PowerCommand] = {
@@ -29,7 +29,7 @@ object PowerBehavior {
   def apply(actorId: String): Behavior[PowerCommand] = {
     Behaviors.receiveMessagePartial {
       case ComputePower(x, exponent, replyTo) =>
-        replyTo ! Response(x, exponent, scala.math.pow(x,exponent.toDouble))
+        replyTo ! Response(x, exponent, scala.math.pow(x, exponent))
         Behaviors.same
     }
   }
